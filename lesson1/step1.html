@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>绘制一个在屏幕中心，大小为 10，颜色是红色的点。</title>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  
+	<!-- 顶点着色器源码 -->
+	<script type="shader-source" id="vertexShader">
+	 void main(){
+  		//声明顶点位置
+  		gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
+  		//声明要绘制的点的大小。
+  		gl_PointSize = 10.0;
+  	}
+	</script>
+	
+	<!-- 片元着色器源码 -->
+	<script type="shader-source" id="fragmentShader">
+	void main(){
+	 	//设置像素颜色为红色
+		gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); 
+	}
+	</script>	
+
+	<!-- 通过 canvas 上下文运行 GLSL 程序 -->
+	<script>
+		// 获取 WebGL 绘图环境
+		const canvas = document.querySelector('#canvas');
+		const gl = canvas.getContext('webgl') || canvas.getContext("experimental-webgl");
+
+		// 创建**顶点着色器**对象
+		const vertexShaderSource = document.querySelector('#vertexShader').innerHTML;
+		const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+		gl.shaderSource(vertexShader, vertexShaderSource);
+		gl.compileShader(vertexShader);
+
+		// 创建**片元着色器**对象
+		const fragmentShaderSource = document.querySelector('#fragmentShader').innerHTML;
+		const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+		gl.shaderSource(fragmentShader, fragmentShaderSource);
+		gl.compileShader(fragmentShader);
+
+		// 创建着色器程序
+		const program = gl.createProgram();
+		gl.attachShader(program, vertexShader); 
+		gl.attachShader(program, fragmentShader);
+		gl.linkProgram(program);
+
+		// 有时候一个 WebGL 应用包含多个 program，所以在使用某个 program 绘制之前，我们要先启用它。
+		gl.useProgram(program);
+
+		// 接下来开始绘制
+		gl.clearColor(0.0, 0.0, 0.0, 1.0);
+		gl.clear(gl.COLOR_BUFFER_BIT);
+		gl.drawArrays(gl.POINTS, 0, 1);
+	</script>
+</body>
+</html>
