@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>点的动态绘制</title>
+    <!-- 工具类 -->
+    <script src="./webgl-tool.js"></script>
+</head>
+<body>
+    <canvas id="webglContext"></canvas>
+
+    <!-- 顶点着色器源码 -->
+    <script type="shader-source" id="vertexShader">
+        // 设置浮点数精度为中等精度
+        precision mediump float;
+
+        // 接收点在 canvas 坐标系上的坐标 (x, y)
+        attribute vec2 a_Position;
+
+        // 接收 canvas 的宽高尺寸
+        attribute vec2 a_Screen_Size;
+
+        void main () {
+            // start 将屏幕坐标系转化为裁剪坐标（裁剪坐标系）
+            vec2 position = (a_Position / a_Screen_Size) * 2.0 - 1.0;
+            position = position * vec2(1.0, -1.0);
+            // 赋值顶点坐标
+            gl_Position = vec4(position, 0, 1);
+            // 声明要绘制的点的大小。
+            gl_PointSize = 10.0;
+        }
+    </script>
+    
+    <!-- 片元着色器源码 -->
+    <script type="shader-source" id="fragmentShader">
+        // 设置浮点数精度为中等精度
+        precision mediump float;
+
+        // 接收 JavaScript 传过来的颜色值（RGBA）。
+        uniform vec4 u_Color;
+
+        void main(){
+            // 将普通的颜色表示转化为 WebGL 需要的表示方式，即将【0-255】转化到【0,1】之间。
+            vec4 color = u_Color / vec4(255, 255, 255, 1);
+            gl_FragColor = color; 
+        }
+    </script>
+    
+    <script>
+        // 着色器创建部分
+        const webglContext = new _WebglContext('vertexShader');
+        const vertexShader = webglContext.createVertexShader(); // 创建顶点着色器对象
+        const fragmentShader = webglContext.createFragmentShader(); // 创建片元着色器对象
+        const vertexShaderSource = document.getElementById('vertexShader').innerHTML; // 获取定点着色器源码
+        const fragmentShaderSource = document.getElementById('fragmentShader').innerHTML; // 获取偏远着色器源码
+        const program = webglContext.createProgram(); // 创建着色器程序
+        webglContext.shaderSource(vertexShader, vertexShaderSource); // 分配顶点着色器源码给顶点着色器对象
+        webglContext.shaderSource(fragmentShader, fragmentShaderSource); // 分配片源着色器源码给片源着色器对象
+        webglContext.compileShader(vertexShader); // 编译着色器程序
+        webglContext.compileShader(fragmentShader); // 编译着色器程序
+        webglContext.programAttachShader(program, vertexShader); // 将着色器挂载在着色器程序上。
+        webglContext.programAttachShader(program, fragmentShader); // 将着色器挂载在着色器程序上。
+        webglContext.linkProgram(program) // 链接着色器程序
+        webglContext.useProgram(program) // 启用着色器程序
+
+        // 绘制部分
+        const a_Position = webglContext.getAttribLocation(program, 'a_Position'); // 获取顶点着色器程序中的 attribute a_Position
+        const a_Screen_Size = webglContext.getAttribLocation(program, 'a_Screen_Size'); // 获取顶点着色器程序中的 attribute a_Screen_Size
+    </script>
+</body>
+</html>

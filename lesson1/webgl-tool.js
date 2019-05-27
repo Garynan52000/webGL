@@ -63,7 +63,7 @@ var _WebglContext = class {
     }
 
     /**
-     * 先启用着色器程序
+     * 启用着色器程序
      * @param program 着色器程序
      */
     useProgram(program) {
