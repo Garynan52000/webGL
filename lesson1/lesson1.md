@@ -265,3 +265,92 @@ JavaScript 部分的实现与静态点的绘制大致相同，只是增加了**�
 - 绑定 canvas 的点击事件。
 - 触发点击操作时，把点击坐标添加到数组 `points` 中。
 - 遍历每个点执行 `drawArrays(gl.Points, 0, 1)` 绘制操作。
+
+```
+// ...省略着色器创建部分。
+
+// 找到顶点着色器中的变量a_Position
+var a_Position = gl.getAttribLocation(program, 'a_Position');
+
+// 找到顶点着色器中的变量a_Screen_Size
+var a_Screen_Size = gl.getAttribLocation(program, 'a_Screen_Size');
+
+// 找到片元着色器中的变量u_Color
+var u_Color = gl.getUniformLocation(program, 'u_Color');
+
+// 为顶点着色器中的 a_Screen_Size 传递 canvas 的宽高信息
+gl.vertexAttrib2f(a_Screen_Size, canvas.width, canvas.height);
+
+// 存储点击位置的数组。
+var points = [];
+canvas.addEventListener('click', e => {
+  var x = e.pageX;
+  var y = e.pageY;
+  var color = randomColor();
+  points.push({ x: x, y: y, color: color })
+
+  gl.clearColor(0, 0, 0, 1.0);
+  // 用上一步设置的清空画布颜色清空画布。
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  
+  for (let i = 0; i < points.length; i++) {
+    var color = points[i].color;
+
+    // 为片元着色器中的 u_Color 传递随机颜色
+    gl.uniform4f(u_Color, color.r, color.g, color.b, color.a);
+
+    // 为顶点着色器中的 a_Position 传递顶点坐标。
+    gl.vertexAttrib2f(a_Position, points[i].x, points[i].y);
+
+    // 绘制点
+    gl.drawArrays(gl.POINTS, 0, 1);
+  }
+})
+
+// 设置清屏颜色
+gl.clearColor(0, 0, 0, 1.0);
+
+// 用上一步设置的清空画布颜色清空画布。
+gl.clear(gl.COLOR_BUFFER_BIT);
+```
+
+## 总结
+
+#### 不足之处
+- 本示例我们采用 `gl.vertexAttrib2f` 直接给 `a_Position` 赋值，所以每绘制一个点，都要给着色器变量赋值一次，并且绘制一次，效率比较低。<br>
+后面我们会介绍一种更快速的方式：利用缓冲区传递多个顶点数据。
+- 本节例子的坐标系转换我们是在着色器阶段完成的，事实上，我们通常在 JavaScript 上计算出转换矩阵，然后将转换矩阵连同顶点信息一并传递给着色器。
+
+#### 知识点
+- GLSL
+  - gl_Position： 内置变量，用来设置顶点坐标。
+  - gl_PointSize： 内置变量，用来设置顶点大小。
+  - vec2：2 维向量容器，可以存储 2 个浮点数。
+  - gl_FragColor： 内置变量，用来设置像素颜色。
+  - vec4：4 维向量容器，可以存储 4 个浮点数。
+  - precision：精度设置限定符，使用此限定符设置完精度后，之后所有该数据类型都将沿用该精度，除非单独设置。
+  - 运算符：向量的对应位置进行运算，得到一个新的向量。
+    - vec * 浮点数： vec2(x, y) * 2.0 = vec(x * 2.0, y * 2.0)。
+    - vec2 * vec2：vec2(x1, y1) * vec2(x2, y2) = vec2(x1 * x2, y1 * y2)。
+    - 加减乘除规则基本一致。但是要注意一点，如果参与运算的是两个 vec 向量，那么这两个 vec 的维数必须相同。
+
+- JavaScript 程序如何连接着色器程序
+  - createShader：创建着色器对象
+  - shaderSource：提供着色器源码
+  - compileShader：编译着色器对象
+  - createProgram：创建着色器程序
+  - attachShader：绑定着色器对象
+  - linkProgram：链接着色器程序
+  - useProgram：启用着色器程序
+
+- JavaScript 如何往着色器中传递数据
+  - getAttribLocation：找到着色器中的 `attribute 变量地址`。
+  - getUniformLocation：找到着色器中的 `uniform 变量地址`。
+  - vertexAttrib2f：给 `attribute 变量`传递两个浮点数。
+  - uniform4f：给 `uniform变量` 传递四个浮点数。
+
+- WebGL 绘制函数
+ - drawArrays: 用指定的图元进行绘制。
+
+- WebGL 图元
+  - gl.POINTS: 将绘制图元类型设置成点图元。
