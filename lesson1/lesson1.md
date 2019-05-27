@@ -15,7 +15,7 @@
 
 #### 编写着色器源码
 
-- 顶点着色器
+- **顶点着色器**
 顶点着色器的主要任务是告诉 `GPU` 在裁剪坐标系的原点（也就是屏幕中心）画一个大小为 `10` 的点。
 
 ```
@@ -27,7 +27,7 @@ void main(){
 }
 ```
 
-- 片元着色器
+- **片元着色器**
 顶点着色器中的数据经过 `图元装配` 和 `光栅化` 之后，来到了 `片元着色器`，在本例中，片元着色器的任务是通知 `GPU` 将光栅化后的像素渲染成红色，所以片元着色器要对内置变量 `gl_FragColor` （代表像素要填充的颜色）进行赋值。
 
 ```
@@ -156,3 +156,112 @@ gl.drawArrays(gl.POINTS, 0, 1);
 ```
 
 ## 第二步: 点的动态绘制
+我们修改一下着色器程序，修改后的着色器程序要能够接收 JavaScript 传递过来的数据。
+
+#### 编写着色器程序
+
+- **顶点着色器**
+```
+// 设置浮点数精度为中等精度
+precision mediump float;
+
+// 接收点在 canvas 坐标系上的坐标 (x, y)
+attribute vec2 a_Position;
+
+// 接收 canvas 的宽高尺寸
+attribute vec2 a_Screen_Size;
+
+void main(){
+  // start 将屏幕坐标系转化为裁剪坐标（裁剪坐标系）
+  vec2 position = (a_Position / a_Screen_Size) * 2.0 - 1.0; 
+  position = position * vec2(1.0, -1.0);
+  gl_Position = vec4(position, 0, 1);
+  // end 将屏幕坐标系转化为裁剪坐标（裁剪坐标系）
+
+  // 声明要绘制的点的大小。
+  gl_PointSize = 10.0;
+}
+```
+
+###### GLSL 语法解析
+我们在顶点着色器中定义两个 `attribute` 变量： `a_Position` 和 `a_Screen_Size`，`a_Position` 接收 `canvas 坐标系` 下的点击坐标。
+
+```
+vec2 position = (a_Position / a_Screen_Size) * 2.0 - 1.0
+```
+上面这句代码用来将 `浏览器窗口坐标` 转换成 `裁剪坐标`，之后通过 `透视除法`，除以 `w` 值（此处为 1 ）转变成 `设备坐标（NDC坐标系）`。<br>
+这个算法首先将(x,y) 转化到【0, 1】区间，再将 【0, 1】之间的值乘以 2 转化到 【0, 2】区间，之后再减去 1 ，转化到 【-1, 1】之间的值，即 `NDC 坐标`。
+
+> 事实上，这是我们第一次接触坐标系变换: <br> 
+> 从 `Canvas 坐标系` 转变到 `NDC 坐标系（即设备坐标系）`，这个变换比较简单，我们用基本运算就可以实现。<br>
+> 在中级进阶阶段，我会给大家介绍一种更通用的转换方法：`矩阵变换`。
+
+- **片元着色器**
+```
+// 设置浮点数精度为中等精度
+precision mediump float;
+
+// 接收 JavaScript 传过来的颜色值（RGBA）。
+uniform vec4 u_Color;
+
+void main(){
+  // 将普通的颜色表示转化为 WebGL 需要的表示方式，即将【0-255】转化到【0,1】之间。
+  vec4 color = u_Color / vec4(255, 255, 255, 1);
+  gl_FragColor = color; 
+}
+```
+
+###### GLSL 语法解析
+片元着色器定义了一个 `全局变量` (被 `uniform` 修饰的变量) ，用来接收 JavaScript 传递过来的随机颜色。
+
+GLSL 中生命变量有 **3种** 形式: 
+- **uniform 变量:** 只能在 `顶点着色器` 中定义。
+- **attribue 变量** 既可以在 `顶点着色器` 中定义，也可以在 `片元着色器` 中定义。
+- **varing 变量** 它用来从 `顶点着色器` 中往 `片元着色器` 传递数据。使用它我们可以在 `顶点着色器` 中声明一个变量并对其赋值，经过插值处理后，在 `片元着色器` 中取出插值后的值来使用。
+
+#### HTML 部分
+```
+<canvas id="canvas"></canvas>
+
+<!-- 定点着色器源码 -->
+<script type="shader-source" id="vertexShader">
+  precision mediump float;
+	// 接收点在 canvas 坐标系上的坐标 (x, y)
+  attribute vec2 a_Position;
+	// 接收 canvas 窗口尺寸(width, height)
+  attribute vec2 a_Screen_Size;
+  
+  void main(){
+    // 将屏幕坐标系转化为 GLSL 限定的坐标值（NDC坐标系）
+    vec2 position = (a_Position / a_Screen_Size) * 2.0 - 1.0; 
+    position = position * vec2(1.0, -1.0);
+    gl_Position = vec4(position, 0, 1);
+    
+    // 声明要绘制的点的大小。
+    gl_PointSize = 10.0;
+  }  
+ </script>
+
+<!-- 片元着色器源码 -->
+<script type="shader-source" id="fragmentShader">
+  precision mediump float;
+
+  //接收 JavaScript 传过来的颜色值（rgba）。
+  uniform vec4 u_Color;
+
+  void main(){
+    vec4 color = u_Color / vec4(255, 255, 255, 1);
+    gl_FragColor = color; 
+  }
+</script>
+```
+
+#### JavaScript 程序
+JavaScript 部分的实现与静态点的绘制大致相同，只是增加了**为着色器中变量进行赋值**的代码。
+
+动态绘制点的逻辑是：
+
+- 声明一个数组变量 `points`，存储点击位置的坐标。
+- 绑定 canvas 的点击事件。
+- 触发点击操作时，把点击坐标添加到数组 `points` 中。
+- 遍历每个点执行 `drawArrays(gl.Points, 0, 1)` 绘制操作。
