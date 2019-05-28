@@ -50,7 +50,7 @@
     
     <script>
         // 着色器创建部分
-        const webglContext = new _WebglContext('vertexShader');
+        const webglContext = new _WebglContext({id: 'webglContext'});
         const vertexShader = webglContext.createVertexShader(); // 创建顶点着色器对象
         const fragmentShader = webglContext.createFragmentShader(); // 创建片元着色器对象
         const vertexShaderSource = document.getElementById('vertexShader').innerHTML; // 获取定点着色器源码
@@ -66,8 +66,41 @@
         webglContext.useProgram(program) // 启用着色器程序
 
         // 绘制部分
-        const a_Position = webglContext.getAttribLocation(program, 'a_Position'); // 获取顶点着色器程序中的 attribute a_Position
+        const canvas = webglContext.canvas;
         const a_Screen_Size = webglContext.getAttribLocation(program, 'a_Screen_Size'); // 获取顶点着色器程序中的 attribute a_Screen_Size
-    </script>
+        const a_Position = webglContext.getAttribLocation(program, 'a_Position'); // 获取顶点着色器程序中的 attribute a_Position
+        const u_Color = webglContext.getUniformLocation(program, 'u_Color'); // 获取着色器程序种的 uniform u_Color
+        webglContext.vertexAttrib2f(a_Screen_Size, canvas.width, canvas.height); // 顶点着色器 attribute a_Screen_Size 2 位浮点数变量赋值
+        webglContext.clearImmediately([0, 0, 0, 1]);
+        
+        const points = [];
+        canvas.addEventListener('click', (e) => {
+            const event = e || window.event;
+            const x = event.pageX;
+            const y = event.pageY;
+            const point = {
+                x,
+                y,
+                color: {
+                    r: Math.round(Math.random() * 255),
+                    g: Math.round(Math.random() * 255),
+                    b: Math.round(Math.random() * 255),
+                    a: +Math.random().toFixed(2),
+                }
+            }
+            points.push(point);
+            drawPoints(webglContext, points); // 画点
+        });
+        
+        function drawPoints(webglContext, points) {
+            webglContext.clearImmediately([0, 0, 0, 1]);
+            points.forEach((point) => {
+                const {x, y, color} = point;
+                webglContext.vertexAttrib2f(a_Position, x, y); // 顶点着色器 attribute 2 位浮点数变量赋值
+                webglContext.uniform4f(u_Color, color.r, color.g, color.b, color.a); // 顶点着色器 attribute 2 位浮点数变量赋值
+            });
+            webglContext.drawArrays();
+        }
+     </script>
 </body>
 </html>

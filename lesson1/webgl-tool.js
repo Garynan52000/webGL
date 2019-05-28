@@ -75,14 +75,14 @@ var _WebglContext = class {
      */
     clearImmediately([r,g,b,a]) {
         this.gl.clearColor(r / 255 || 0.0, g / 255 || 0.0, b / 255 || 0.0, a / 1 || 0.0);
-        this.gl.clear(gl.COLOR_BUFFER_BIT);
+        this.gl.clear(this.gl.COLOR_BUFFER_BIT);
     }
 
     /**
      * 绘制
      */
     drawArrays() {
-        this.gl.drawArrays(gl.POINTS, 0, 1);
+        this.gl.drawArrays(this.gl.POINTS, 0, 1);
     }
 
     /**
